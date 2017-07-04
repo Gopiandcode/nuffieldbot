@@ -45,9 +45,9 @@ app.post('/api/alexa/', function(req, res) {
         req.context.log("                     FUNCTION FINISHED                          ");
         req.context.log("----------------------------------------------------------------");
         req.context.log(resp); 
-        return res.json(resp);
+        return res.status(200).json(resp);
     }).catch(err => {
-        req.context.log(err); 
+        req.context.log(err);
     });
 });
 
