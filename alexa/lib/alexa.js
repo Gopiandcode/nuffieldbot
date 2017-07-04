@@ -753,12 +753,6 @@ var listprior_handler = Alexa.CreateStateHandler(states.LISTPRIOR, {
 });
 
 exports.handler =  function(event, context, callback) {
-    context.log("-------------------------------------------------");
-    context.log("SANITY CHECK ------------------------------------");
-    context.log("-------------------------------------------------");
-    context.log(event);
-    context.log("-------------------------------------------------");
-    
     
     var appId = process.env.APPLICATION_ID;
 

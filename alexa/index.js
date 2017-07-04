@@ -39,9 +39,16 @@ app.post('/api/alexa/', function(req, res) {
     req.context.log(req.body);
     req.context.log("____________________________________________________________________");
     req.context.log("--------------------------------------------------------------------");
-    lambda.handler(req.body, req.context);
-    ctx.Promise.then(resp => { return res.status(200).json(resp);})
-        .catch(err => {req.context.log(err); });
+    lambda.handler(req.body, ctx);
+    ctx.Promise.then(resp => { 
+        req.context.log("----------------------------------------------------------------");
+        req.context.log("                     FUNCTION FINISHED                          ");
+        req.context.log("----------------------------------------------------------------");
+        req.context.log(resp); 
+        req.context.done(res.status(200).json(resp));
+    }).catch(err => {
+        req.context.log(err); 
+    });
 });
 
 // app.get('/', function(req, res) {
