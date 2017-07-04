@@ -45,15 +45,15 @@ app.post('/api/alexa', function(req, res) {
         req.context.log("                     FUNCTION FINISHED                          ");
         req.context.log("----------------------------------------------------------------");
         req.context.log(resp); 
-        return res.status(200).json(resp);
+        return res.json(resp);
     }).catch(err => {
         req.context.log(err); 
     });
 });
 
- app.get('/api/alexa', function(req, res) {
+ app.get('/api/alexa/', function(req, res) {
      req.context.log("get request recieved");
-     res.body = "Get Request";
+     res.send("Get Request");
  });
 
 // var httpsServer = https.createServer(credentials, app);
