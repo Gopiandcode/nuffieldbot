@@ -33,7 +33,12 @@ app.use(bodyParser.json({ type: 'application/json' }));
 
 app.post('/api/alexa/', function(req, res) {
     var ctx = context();
+    req.context.log("____________________________________________________________________");
+    req.context.log("                            IMPORTANT STUFF                         ");
+    req.context.log("--------------------------------------------------------------------");
     req.context.log(req.body);
+    req.context.log("____________________________________________________________________");
+    req.context.log("--------------------------------------------------------------------");
     lambda.handler(req.body, ctx);
     ctx.Promise.then(resp => { return res.status(200).json(resp);})
         .catch(err => {console.log(err); });
