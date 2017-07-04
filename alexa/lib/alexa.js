@@ -766,10 +766,11 @@ module.exports.handler =  function(event, context, callback) {
 
         if(event.session.attributes) {
             event.session.attributes["authenticated"] = true;
-            event.session.attributes["user_id"] = "null";
+            event.session.attributes["user_id"] = session.user.accessToken;
         } else {
             event.session.attributes = {
-                authenticated: false,
+                authenticated: true,
+                user_id: session.user.accessToken
             };
         }
     } else {
