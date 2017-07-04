@@ -1,0 +1,32 @@
+{
+  "name": "nuffield_health_alexa",
+  "version": "1.0.0",
+  "description": "An Alexa skill proof of concept made to allow users to easily access the Nuffield Health API",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "."
+  },
+  "keywords": [
+    "alexa",
+    "nuffield",
+    "health",
+    "chat",
+    "bot"
+  ],
+  "author": "Kiran Gopinathan",
+  "license": "MIT",
+  "dependencies": {
+    "alexa-sdk": "^1.0.10",
+    "aws-lambda-mock-context": "^3.1.1",
+    "azure-function-express": "^1.2.2",
+    "express": "^4.15.3",
+    "grunt": "^1.0.1"
+  },
+  "devDependencies": {
+    "grunt-contrib-watch": "^1.0.0"
+  }
+}
