@@ -752,7 +752,7 @@ var listprior_handler = Alexa.CreateStateHandler(states.LISTPRIOR, {
     }
 });
 
-exports.handler =  function(event, context, callback) {
+module.exports.handler =  function(event, context, callback) {
     
     var appId = process.env.APPLICATION_ID;
 
