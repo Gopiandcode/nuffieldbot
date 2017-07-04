@@ -51,10 +51,10 @@ app.post('/api/alexa/', function(req, res) {
     });
 });
 
- app.get('/api/alexa/', function(req, res) {
-     req.context.log("get request recieved");
-     res.send("Get Request");
- });
+ //app.get('/api/alexa/', function(req, res) {
+ //    req.context.log("get request recieved");
+ //    res.send("Get Request");
+ //});
 
 // var httpsServer = https.createServer(credentials, app);
 // var httpServer = http.createServer(app);
