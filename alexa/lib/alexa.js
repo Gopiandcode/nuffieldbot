@@ -757,7 +757,7 @@ exports.handler =  function(event, context, callback) {
 
     // Authenticate user using token from Microsoft ADBC
 
-    var token = event.session.user.accessToken;
+    var token = undefined //event.session.user.accessToken;
 
 
     if(token || debug) {
