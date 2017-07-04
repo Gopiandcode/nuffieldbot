@@ -23,10 +23,14 @@ const REST_PORT = 3000;
 
 var app = express();
 
-/*app.use(function(req, res, next) {
+app.use(function(req, res, next) {
+    console.log("Routing through Alexa Function: ");
     console.log(req);
+    req.context.log("Routing through Alexa Function: ");
+    req.context.log(req);
+
     next();
-});*/
+});
 
 
 app.use(bodyParser.json({ type: 'application/json' }));
