@@ -33,9 +33,9 @@ app.use(function(req, res, next) {
 });
 
 
-app.use(bodyParser.json({ type: 'application/json' }));
+//app.use(bodyParser.json({ type: 'application/json' }));
 
-app.post('/api/alexa/', function(req, res) {
+app.post('/api/alexa/', function(req, res,next) {
     var ctx = context();
     req.context.log("____________________________________________________________________");
     req.context.log("                            IMPORTANT STUFF                         ");
