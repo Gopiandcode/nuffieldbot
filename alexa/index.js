@@ -35,7 +35,7 @@ app.use(function(req, res, next) {
 
 //app.use(bodyParser.json({ type: 'application/json' }));
 
-app.post('/api/alexa/', function(req, res,next) {
+app.post('/api/alexa/', function(req, res) {
     var ctx = context();
     req.context.log("____________________________________________________________________");
     req.context.log("                            IMPORTANT STUFF                         ");
@@ -43,7 +43,11 @@ app.post('/api/alexa/', function(req, res,next) {
     req.context.log(req);
     req.context.log("____________________________________________________________________");
     req.context.log("--------------------------------------------------------------------");
+    
+    
     lambda.handler(req.body, ctx);
+    
+    
     ctx.Promise.then(resp => { 
         req.context.log("----------------------------------------------------------------");
         req.context.log("                     FUNCTION FINISHED                          ");

@@ -1,5 +1,5 @@
 var Alexa = require('alexa-sdk');
-var debug = true;
+var debug = false;
 
 
 /* All static text prompts said by Alexa - used in their respective intent */
@@ -758,7 +758,7 @@ module.exports.handler =  function(event, context, callback) {
 
     // Authenticate user using token from Microsoft ADBC
 
-    var token = undefined //event.session.user.accessToken;
+    var token = event.session.user.accessToken;
 
 
     if(token || debug) {
