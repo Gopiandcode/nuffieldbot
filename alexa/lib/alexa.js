@@ -47,12 +47,28 @@ function generate_active_intent() {
     return "Your active bookings are " + items + ". Would you like to cancel a booking?";
 }
 
-function generate_available_intent(class_type, date, time) {
+function generate_available_intent(class_type, date, time, attributes, callback) {
     var items = "";
+
+    var class_id = booking_bug.convertSkillValue(class_type);
+    var booking_date_partial = booking_bug.convertDateSlotValue(date);
+    var booking_time = booking_bug.convertTimeSlotValue(time);
+    var booking_date = booking_date_partial.setTime(booking_time.getTime());
 
     // TODO: Get Available classes for user
 
-    return "Here are some available classes around that time. " + items + ". Would you like to make a booking?";
+    var options = auth.options_event_request;
+    options.url = 'https://nuffield-uat.bookingbug.com/api/v1/37047/events?start_date='+ datestr(new Date()) + '&per_page=5&include_non_bookable=true'
+    options.headers['auth-token'] = attributes.auth_token;
+    response(options, function(error, response, body) {
+
+            attributes['respdata'] = resp;
+            var response = booking_bug.speachify(body);
+            var data = "Here are some available classes around that time. " + response + ". Would you like to make a booking?";
+            callback(data);
+    });
+    
+    
 }
 
 function generate_prior_intents(class_type, date) {
@@ -232,15 +248,17 @@ var handlers = {
             });
         } else {
             console.log('ListActiveIntent recieved');
-            var date = this.event.request.intent.slots.date;
-            var time = this.event.request.intent.slots.time;
-            var activity = this.event.request.intent.slots.activity;
+            var date = this.event.request.intent.slots.date.value;
+            var time = this.event.request.intent.slots.time.value;
+            var activity = this.event.request.intent.slots.activity.value;
             console.log(date);
             console.log(time);
             console.log(activity);
             console.log('ListAvailableIntent recieved');
             this.handler.state = states.MAKEBOOKING;
-            this.emit(':ask', generate_available_intent(activity, date, time));
+            generate_available_intent(activity, date, time, this.attributes, function(data) {
+                this.emit(':ask', data);
+            });
         }
     },
     'ListPriorIntent': function () {
@@ -289,7 +307,9 @@ var handlers = {
                 this.emit(':ask', make_booking_response);
             } else {
                 this.handler.state = states.MAKEBOOKING;
-                this.emit(':ask', make_booking_not_found_response + generate_available_intent(activity, date, time));
+                generate_available_intent(activity, date, time, this.attributes, function(data) {
+                    this.emit(':ask', make_booking_not_found_response + data);
+                });
             }
         }
     },
@@ -385,7 +405,9 @@ var makebooking_handlers = Alexa.CreateStateHandler(states.MAKEBOOKING, {
                 this.emit(':ask', make_booking_response);
             } else {
                 this.handler.state = states.MAKEBOOKING;
-                this.emit(':ask', make_booking_not_found_response + generate_available_intent(activity, date, time));
+                generate_available_intent(activity, date, time, this.attributes, function(data) {
+                    this.emit(':ask', make_booking_not_found_response + data);
+                });
             }
         }
     },
@@ -611,7 +633,7 @@ var viewmoreinformation_handler = Alexa.CreateStateHandler(states.VIEWMOREINFORM
             console.log(activity);
             console.log('ListAvailableIntent recieved');
             this.handler.state = states.MAKEBOOKING;
-            this.emit(':ask', generate_available_intent(activity, date, time));
+            this.emit(':ask', generate_active_intent(activity, date, time));
         }
     },
     'ListPriorIntent': function () {
@@ -784,9 +806,15 @@ module.exports.handler = function (event, context, callback) {
         request(auth.options_token_request, function(error, resp, data) {
             if(error) throw new Error(error);
 
-            event.session.attributes['auth_token'] = data.auth_token;
+            event.session.attributes['auth_token'] = JSON.parse(data).auth_token;
+
+            var alexa = Alexa.handler(event, context);
+            alexa.appId = appId;
+            alexa.registerHandlers(root_handlers, unauthenticated_handlers, newsession_handlers, makebooking_handlers, makebookingconfirm_handler, cancelbookingbegin_handler, viewmoreinformation_handler, listprior_handler);
+            alexa.execute();
+
         });
-        
+
     } else {
         // TODO: Implement sign in reminder card
 
@@ -797,12 +825,13 @@ module.exports.handler = function (event, context, callback) {
                 authenticated: false,
             };
         }
+            var alexa = Alexa.handler(event, context);
+            alexa.appId = appId;
+            alexa.registerHandlers(root_handlers, unauthenticated_handlers, newsession_handlers, makebooking_handlers, makebookingconfirm_handler, cancelbookingbegin_handler, viewmoreinformation_handler, listprior_handler);
+            alexa.execute();
     }
 
 
-    var alexa = Alexa.handler(event, context);
-    alexa.appId = appId;
-    alexa.registerHandlers(root_handlers, unauthenticated_handlers, newsession_handlers, makebooking_handlers, makebookingconfirm_handler, cancelbookingbegin_handler, viewmoreinformation_handler, listprior_handler);
-    alexa.execute();
+
 }
 
