@@ -50,22 +50,55 @@ function generate_active_intent() {
 function generate_available_intent(class_type, date, time, attributes, callback) {
     var items = "";
 
-    var class_id = booking_bug.convertSkillValue(class_type);
-    var booking_date_partial = booking_bug.convertDateSlotValue(date);
-    var booking_time = booking_bug.convertTimeSlotValue(time);
-    var booking_date = booking_date_partial.setTime(booking_time.getTime());
+    var class_id = undefined//class_type ? booking_bug.convertSkillValue(class_type) : undefined;
+    var booking_date_partial = undefined //date ? booking_bug.convertDateSlotValue(date) : undefined;
+    //var booking_time = booking_bug.convertTimeSlotValue(time);
+    var booking_date = booking_date_partial;//.setTime(booking_time.getTime());
 
     // TODO: Get Available classes for user
 
     var options = auth.options_event_request;
-    options.url = 'https://nuffield-uat.bookingbug.com/api/v1/37047/events?start_date='+ datestr(new Date()) + '&per_page=5&include_non_bookable=true'
+    options.url = 'https://nuffield-uat.bookingbug.com/api/v1/37059/events?start_date='+ booking_bug.urlDate(new Date()) + '&per_page=5&include_non_bookable=true'
     options.headers['auth-token'] = attributes.auth_token;
-    response(options, function(error, response, body) {
+    request(options, function(error, resp, body) {
+            attributes.log(body);
+            var data = JSON.parse(body);
+            var request_count = 0;
+            var request_limit = data._embedded.events.length;
+            
+            data._embedded.events.forEach(function(obj) {
+                var uri = obj._links.event_group.href;
+                //uri = uri.substring(0, uri.lastIndexOf('{'));
+                attributes.log('raw: ' + obj._links.self.href);
+                var second_options = auth.options_event_request;
+                second_options.url = decodeURI(uri);
+                attributes.log('decoded: ' + decodeURI(uri));
+                second_options.headers['auth-token'] = attributes.auth_token;
+                
+                
+                request(second_options, (error, resu, dat) => {
+                    attributes.log('---------------------------------------------------------\n');
+                    attributes.log('----------------------data  response---------------------\n');
+                    attributes.log('---------------------------------------------------------\n');                    
+                    attributes.log(dat);
+                    var group_name = JSON.parse(dat).name;
+                    attributes.log(request_count + "th item: " + group_name);
+                    obj.description = group_name;
+                    request_count++;
+                    
+                    if(request_count >= request_limit) {
+                                    var response = booking_bug.speachify(data);
+                                    var speach = "Here are some available classes around that time. " + response + ". Would you like to make a booking?";
+                                    callback(speach);
+                    }
+                    
+                });
+                
+                
+                
+            });
+            
 
-            attributes['respdata'] = resp;
-            var response = booking_bug.speachify(body);
-            var data = "Here are some available classes around that time. " + response + ". Would you like to make a booking?";
-            callback(data);
     });
     
     
@@ -249,14 +282,12 @@ var handlers = {
         } else {
             console.log('ListActiveIntent recieved');
             var date = this.event.request.intent.slots.date.value;
-            var time = this.event.request.intent.slots.time.value;
             var activity = this.event.request.intent.slots.activity.value;
             console.log(date);
-            console.log(time);
             console.log(activity);
             console.log('ListAvailableIntent recieved');
             this.handler.state = states.MAKEBOOKING;
-            generate_available_intent(activity, date, time, this.attributes, function(data) {
+            generate_available_intent(activity, date, undefined, this.attributes, (data) => {
                 this.emit(':ask', data);
             });
         }
@@ -307,7 +338,7 @@ var handlers = {
                 this.emit(':ask', make_booking_response);
             } else {
                 this.handler.state = states.MAKEBOOKING;
-                generate_available_intent(activity, date, time, this.attributes, function(data) {
+                generate_available_intent(activity, date, time, this.attributes, (data) => {
                     this.emit(':ask', make_booking_not_found_response + data);
                 });
             }
@@ -405,7 +436,7 @@ var makebooking_handlers = Alexa.CreateStateHandler(states.MAKEBOOKING, {
                 this.emit(':ask', make_booking_response);
             } else {
                 this.handler.state = states.MAKEBOOKING;
-                generate_available_intent(activity, date, time, this.attributes, function(data) {
+                generate_available_intent(activity, date, time, this.attributes, (data) => {
                     this.emit(':ask', make_booking_not_found_response + data);
                 });
             }
@@ -633,7 +664,10 @@ var viewmoreinformation_handler = Alexa.CreateStateHandler(states.VIEWMOREINFORM
             console.log(activity);
             console.log('ListAvailableIntent recieved');
             this.handler.state = states.MAKEBOOKING;
-            this.emit(':ask', generate_active_intent(activity, date, time));
+            generate_active_intent(activity, date, time, this.attributes, function(data) {
+                
+                this.emit(':ask', data);
+            });
         }
     },
     'ListPriorIntent': function () {
@@ -777,7 +811,7 @@ var listprior_handler = Alexa.CreateStateHandler(states.LISTPRIOR, {
     }
 });
 
-module.exports.handler = function (event, context, callback) {
+module.exports.handler = function (event, context, callback, logging_function) {
 
     var appId = process.env.APPLICATION_ID;
 
@@ -796,10 +830,12 @@ module.exports.handler = function (event, context, callback) {
         if (event.session.attributes) {
             event.session.attributes["authenticated"] = true;
             event.session.attributes["user_id"] = event.session.user.userId;
+            event.session.attributes['log'] = logging_function;
         } else {
             event.session.attributes = {
                 authenticated: true,
-                user_id: event.session.user.accessToken.userId
+                user_id: event.session.user.accessToken.userId,
+                log: logging_function
             };
         }
         

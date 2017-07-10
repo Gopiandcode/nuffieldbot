@@ -47,7 +47,7 @@ app.post('/api/alexa/', function(req, res) {
     req.context.log("--------------------------------------------------------------------");
     
     
-    lambda.handler(req.body, ctx);
+    lambda.handler(req.body, ctx, undefined,req.context.log);
     
     
     ctx.Promise.then(resp => { 

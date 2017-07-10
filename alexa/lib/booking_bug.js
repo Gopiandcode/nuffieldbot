@@ -188,9 +188,28 @@ function addTimetoDate(date, time) {
   return date.setTime(time.getTime());
 }
 
+function pad(n, width, z) {
+    z = z || '0';
+    n = n + '';
+    return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+}
+
+function datestr(date) {
+    var date = new Date();
+    var str = '';
+    str += date.getFullYear();
+    str += '-';
+    str += pad(date.getMonth(), 2);
+    str += '-';
+    str += pad(date.getDay(),2);
+    return str;
+}
+
 module.exports = {
     'speachify': speachifyResponse,
     'convertSkillValue': getEventId,
     'convertDateSlotValue': getDateFromSlot,
-    'convertTimeSlotValue': parseTime
+    'convertTimeSlotValue': parseTime,
+    'urlDate': datestr
+    
 }
