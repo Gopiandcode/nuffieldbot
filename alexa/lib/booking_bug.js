@@ -242,7 +242,7 @@ function normalize(str) {
 }
 
 function parse_data_async(events, callback) {
-    var process = child_process.exec('node ../child_events_parse.js', function(err, stdout, stderr) {
+    var process = child_process.exec('node ./child_events_parse.js', function(err, stdout, stderr) {
         if(err) console.log('error: ' + err)
         var output = JSON.parse(stdout);
         callback(output);
