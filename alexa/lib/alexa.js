@@ -854,9 +854,9 @@ module.exports.handler = function (event, context, callback, logging_function) {
             // Here we send a request to retrieve the list of event_groups, and once recieved store it in a global db under the users id
             var event_group_request = auth.event_group_request;
             event_group_request.headers['auth-token'] = event.session.attributes['auth_token'];
-            request(auth.event_group_request, function(error, resp, data) {
+            request(event_group_request, function(error, resp, data) {
                 var values = JSON.parse(data);
-                var events = values.data._embedded.event_groups;
+                var events = values._embedded.event_groups;
                 booking_bug.buildEventGroupDatabase(events, (data) => {
                     // Take the parsed data and store it in the local database under the user's id
                     local_db[user_uuid] = data;
