@@ -66,6 +66,7 @@ function generate_available_intent(class_type, date, time, attributes, callback)
             var data = JSON.parse(body);
             var request_count = 0;
             var request_limit = data._embedded.events.length;
+            attributes.log(local_db);
             
             data._embedded.events.forEach(function(obj) {
                 var uri = obj._links.event_group.href;
