@@ -1,5 +1,6 @@
 var request = require('request');
 var event_reference = require('./events.json');
+const child_process = require('child_process');
 
 // Scans through the list of events + ids to return the event name
 function getEventName(event_id) {
@@ -90,7 +91,7 @@ function dateToString(date, duration) {
         return i + "rd";
     }
     return i + "th";
-}(date.getDate());
+  }(date.getDate());
   var day = ['Monday','Tuesday','Wednesday', 'Thursday', 'Friday','Saturday', 'Sunday'][date.getDay()];
 
   var hour = date.getHours();
@@ -205,11 +206,57 @@ function datestr(date) {
     return str;
 }
 
+function combineEvents(events, event_chains) {
+    var cache = {};
+    var results = [];
+
+
+    events.forEach(function(event) {
+        var event_chain_id = String(event.event_chain_id);
+        if(!cache[event_chain_id]) {
+            for(var i = 0; i<event_chains.length; i++) {
+                if(String(event_chains[i].id) == event_chain_id) {
+                    event.chain_name = event_chains[i].name;                 
+                    results.push(event);
+                    return;
+                }
+                cache[String(event_chains[i].id)] = event_chains[i];
+            }
+        } else {
+            event.chain_name = cache[event_chain_id].name;
+            results.push(event);
+            return;
+        }
+    })
+
+   return results;
+}
+
+
+ 
+function normalize(str) {
+    var string = String(str);
+    string = string.toLowerCase();
+    string = string.replace(/[^a-z ]/g, '')
+    return string;
+}
+
+function parse_data_async(events, callback) {
+    var process = child_process.exec('node ../child_events_parse.js', function(err, stdout, stderr) {
+        if(err) console.log('error: ' + err)
+        var output = JSON.parse(stdout);
+        callback(output);
+    });
+    process.stdin.end(JSON.stringify(events), 'utf8');
+}
+
+
 module.exports = {
     'speachify': speachifyResponse,
     'convertSkillValue': getEventId,
     'convertDateSlotValue': getDateFromSlot,
     'convertTimeSlotValue': parseTime,
-    'urlDate': datestr
-    
+    'urlDate': datestr,
+    'convertAlexaSpeach': normalize,
+    'buildEventGroupDatabase': parse_data_async
 }

@@ -1,9 +1,10 @@
 var Alexa = require('alexa-sdk');
-var request = require('request');
-var debug = false;
-var booking_bug = require('./booking_bug.js');
-var auth = require('./auth.js');
-
+const request = require('request');
+const debug = false;
+const booking_bug = require('./booking_bug.js');
+const auth = require('./auth.js');
+const uuidv1 = require('uuid/v1');
+var local_db = {};
 
 /* All static text prompts said by Alexa - used in their respective intent */
 const launch_request_response = "Welcome to Nuffield Health. you can make a new booking or cancel your current bookings. I can also tell you more information about the gym classes. What would you like to do?";
@@ -825,17 +826,23 @@ module.exports.handler = function (event, context, callback, logging_function) {
 
         // Get booking_bug authentication token.
 
+        // As the session can not be accessed after sending a response,
+        // the application will assign each user a UUID in their session
+        // which they can then use to retrieve the results of any expensive computations.
 
+        var user_uuid = uuidv1(); 
 
         if (event.session.attributes) {
             event.session.attributes["authenticated"] = true;
             event.session.attributes["user_id"] = event.session.user.userId;
             event.session.attributes['log'] = logging_function;
+            event.session.attributes['uuid'] = user_uuid;
         } else {
             event.session.attributes = {
                 authenticated: true,
                 user_id: event.session.user.accessToken.userId,
-                log: logging_function
+                log: logging_function,
+                uuid: user_uuid
             };
         }
         
@@ -843,6 +850,18 @@ module.exports.handler = function (event, context, callback, logging_function) {
             if(error) throw new Error(error);
 
             event.session.attributes['auth_token'] = JSON.parse(data).auth_token;
+
+            // Here we send a request to retrieve the list of event_groups, and once recieved store it in a global db under the users id
+            var event_group_request = auth.event_group_request;
+            event_group_request.headers['auth-token'] = event.session.attributes['auth_token'];
+            request(auth.event_group_request, function(error, resp, data) {
+                var values = JSON.parse(data);
+                var events = values.data._embedded.event_groups;
+                booking_bug.buildEventGroupDatabase(events, (data) => {
+                    // Take the parsed data and store it in the local database under the user's id
+                    local_db[user_uuid] = data;
+                });
+            });
 
             var alexa = Alexa.handler(event, context);
             alexa.appId = appId;
