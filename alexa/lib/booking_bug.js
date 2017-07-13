@@ -132,12 +132,9 @@ function speachifyResponse(data){
 function getDateFromSlot(rawDate) {
     // try to parse data
     var date = new Date(Date.parse(rawDate));
-    var result;
-    // create an empty object to use later
-    var eventDate = {
+    var eventDate = {};
 
-    };
-
+    
     // if could not parse data must be one of the other formats
     if (isNaN(date)) {
         // to find out what type of date this is, we can split it and count how many parts we have see comments above.
@@ -158,11 +155,39 @@ function getDateFromSlot(rawDate) {
         }
         // original slot value was parsed correctly
     } else {
-        eventDate["startDate"] = new Date(date).setUTCHours(0, 0, 0, 0);
-        eventDate["endDate"] = new Date(date).setUTCHours(24, 0, 0, 0);
+        eventDate["startDate"] = new Date(new Date(date).setUTCHours(0, 0, 0, 0));
+        eventDate["endDate"] = new Date(new Date(date).setUTCHours(24, 0, 0, 0));
     }
     return eventDate;
 }
+// Also from https://github.com/alexa/skill-sample-nodejs-calendar-reader/blob/master/src/index.js
+function getWeekData(res) {
+    if (res.length === 2) {
+
+        var mondayIndex = 0;
+        var sundayIndex = 6;
+
+        var weekNumber = res[1].substring(1);
+
+        var weekStart = w2date(res[0], weekNumber, mondayIndex);
+        var weekEnd = w2date(res[0], weekNumber, sundayIndex);
+
+        return Dates = {
+            startDate: weekStart,
+            endDate: weekEnd,
+        };
+    }
+}
+
+// Also from https://github.com/alexa/skill-sample-nodejs-calendar-reader/blob/master/src/index.js
+var w2date = function (year, wn, dayNb) {
+    var day = 86400000;
+
+    var j10 = new Date(year, 0, 10, 12, 0, 0),
+        j4 = new Date(year, 0, 4, 12, 0, 0),
+        mon1 = j4.getTime() - j10.getDay() * day;
+    return new Date(mon1 + ((wn - 1) * 7 + dayNb) * day);
+};
 
 // Code snippet from: https://stackoverflow.com/questions/141348/what-is-the-best-way-to-parse-a-time-into-a-date-object-from-user-input-in-javas
 function parseTime(timeString) {    
@@ -241,15 +266,28 @@ function normalize(str) {
     return string;
 }
 
-function parse_data_async(events, callback) {
-    var process = child_process.exec('node ./child_events_parse.js', function(err, stdout, stderr) {
-        if(err) console.log('error: ' + err)
+function parse_data_async(events,log, callback) {
+    var process = child_process.exec('node  D:\\home\\site\\wwwroot\\alexa\\lib\\child_events_parse.js', function(err, stdout, stderr) {
+        if(err) log('error: ' + err);
         var output = JSON.parse(stdout);
         callback(output);
     });
     process.stdin.end(JSON.stringify(events), 'utf8');
 }
 
+// Function from https://stackoverflow.com/questions/25300213/how-to-covert-1200-pm-into-date-object-in-javascript
+function setDateTime(time, date){
+    var startTime = date ? date : new Date();
+    var parts = time.match(/(\d+):(\d+) (AM|PM)/);
+    if (parts) {
+            var hours = parseInt(parts[1]),
+            minutes = parseInt(parts[2]),
+            tt = parts[3];
+        if (tt === 'PM' && hours < 12) hours += 12;
+     startTime.setHours(hours, minutes, 0, 0);
+    }
+    return startTime;
+}
 
 module.exports = {
     'speachify': speachifyResponse,
@@ -258,5 +296,6 @@ module.exports = {
     'convertTimeSlotValue': parseTime,
     'urlDate': datestr,
     'convertAlexaSpeach': normalize,
-    'buildEventGroupDatabase': parse_data_async
+    'buildEventGroupDatabase': parse_data_async,
+    'convertTimeSlotValueAlt': setDateTime
 }

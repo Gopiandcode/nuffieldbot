@@ -52,22 +52,51 @@ function generate_available_intent(class_type, date, time, attributes, callback)
     var items = "";
 
     var class_id = undefined//class_type ? booking_bug.convertSkillValue(class_type) : undefined;
-    var booking_date_partial = undefined //date ? booking_bug.convertDateSlotValue(date) : undefined;
+        attributes.log("----------------------------------------------------------------\nRecieved Class: " + class_type);
+    attributes.log("----------------------------------------------------------------\nRecieved date: " + date);
+    var booking_dates = date ? booking_bug.convertDateSlotValue(date) : {startDate: new Date(), endDate: new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 7)};
+    
+    
+    var converted_class = booking_bug.convertAlexaSpeach(class_type);
+    attributes.log('these are the attributed uuids');
+    attributes.log(attributes);
+    attributes.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
+    attributes.log(local_db);
+    var data = local_db[attributes.token];
+    data = JSON.parse(data);
+    var id = undefined;
+    for(var i in data) {
+        attributes.log('checking (' + data[i].alexa_name + ' <==> ' + converted_class + ')')
+        if(data[i].alexa_name === converted_class) {
+            id = data[i].id;
+            break;
+        }
+    }
+    
     //var booking_time = booking_bug.convertTimeSlotValue(time);
-    var booking_date = booking_date_partial;//.setTime(booking_time.getTime());
+    //var booking_date = booking_date_partial;//.setTime(booking_time.getTime());
 
     // TODO: Get Available classes for user
 
     var options = auth.options_event_request;
-    options.url = 'https://nuffield-uat.bookingbug.com/api/v1/37059/events?start_date='+ booking_bug.urlDate(new Date()) + '&per_page=5&include_non_bookable=true'
+    options.url = 'https://nuffield-uat.bookingbug.com/api/v1/37059/events?start_date='+ booking_dates.startDate.toISOString() + '&end_date=' + booking_dates.endDate.toISOString() + '&per_page=2&include_non_bookable=false'
+    
+    if(id) {
+        options.url += "&event_group_id=" + id;
+    }
+    
+    attributes.log("----------------------------------------------------------------\nUrl Requested: " + options.url);
     options.headers['auth-token'] = attributes.auth_token;
     request(options, function(error, resp, body) {
             attributes.log(body);
             var data = JSON.parse(body);
             var request_count = 0;
             var request_limit = data._embedded.events.length;
-            attributes.log(local_db);
-            
+            if(request_limit === 0) {
+                                        var none_found = "Unfortunately there are no " + converted_class + " classes available during that time.";
+                                        callback({cmd: ':tell', data: none_found});
+            }
+            else 
             data._embedded.events.forEach(function(obj) {
                 var uri = obj._links.event_group.href;
                 //uri = uri.substring(0, uri.lastIndexOf('{'));
@@ -89,9 +118,10 @@ function generate_available_intent(class_type, date, time, attributes, callback)
                     request_count++;
                     
                     if(request_count >= request_limit) {
-                                    var response = booking_bug.speachify(data);
-                                    var speach = "Here are some available classes around that time. " + response + ". Would you like to make a booking?";
-                                    callback(speach);
+                        var response = booking_bug.speachify(data);
+                        var speach = "Here are some available classes around that time. " + response + ". Would you like to make a booking?";
+                        callback({cmd: ':ask', data: speach});
+
                     }
                     
                 });
@@ -113,9 +143,51 @@ function generate_prior_intents(class_type, date) {
     return "Your previous classes are " + items + ". Would you like to give feedback?";
 }
 
-function isValidAvailableClass(class_type, date, time) {
+function isValidAvailableClass(class_type, datestring, timestring, attributes, callback) {
+    attributes.log("Checking whether " + JSON.stringify(class_type) + " on " + JSON.stringify(datestring) + " at " + JSON.stringify(timestring) + " is valid");
+    var converted_class = booking_bug.convertAlexaSpeach(class_type.value);
+    var date = booking_bug.convertDateSlotValue(datestring.value).startDate;
+    date = booking_bug.convertTimeSlotValueAlt(timestring.value, date);
+    attributes.log("Converted date is " + date.toISOString() + "  and the class is " + converted_class);
+    
+    
+    var data = local_db[attributes.token];
+    data = JSON.parse(data);
+    
+    var id = undefined;
+    
+    for(var i in data) {
+        attributes.log('checking (' + data[i].alexa_name + ' <==> ' + converted_class + ')')
+        if(data[i].alexa_name === converted_class) {
+            id = data[i].id;
+            break;
+        }
+    }    
+    if(!id) {
+        callback(false);
+        return;
+    }
+    
+    var options = auth.options_event_request;
+    options.url = "https://nuffield-uat.bookingbug.com/api/v1/37059/events?start_date=" + date.toISOString() + "&per_page=1&include_non_bookable=false&event_group_id=" + id;
+    options.headers['auth-token'] = attributes.auth_token;
+    
+    request(options, function(err, resp, body) {
+        attributes.log("????????????????????????????????\n Reciveved" + body);
+        var evs = JSON.parse(body);
+        if(Number(evs.total_entries) !== 0) {
+            callback(true);
+            return;
+        } else {
+            callback(false);
+            return;
+        }
+    });
+    
+    
+    
+    
     // TODO: Implement functionality to check whether a booking to be made is available or not.
-    return true;
 }
 
 function isValidActiveBooking(class_type, date, time) {
@@ -290,7 +362,7 @@ var handlers = {
             console.log('ListAvailableIntent recieved');
             this.handler.state = states.MAKEBOOKING;
             generate_available_intent(activity, date, undefined, this.attributes, (data) => {
-                this.emit(':ask', data);
+                this.emit(data.cmd, data.data);
             });
         }
     },
@@ -333,17 +405,22 @@ var handlers = {
                 time: time,
                 activity: activity
             };
-
+            //
             // TODO: Use the parameters returned to find available bookings.
-            if (isValidAvailableClass(activity, date, time)) {
-                this.handler.state = states.MAKEBOOKINGCONFIRM;
-                this.emit(':ask', make_booking_response);
-            } else {
-                this.handler.state = states.MAKEBOOKING;
-                generate_available_intent(activity, date, time, this.attributes, (data) => {
-                    this.emit(':ask', make_booking_not_found_response + data);
-                });
-            }
+            isValidAvailableClass(activity, date, time, this.attributes, (validity) => {
+                
+                
+                 if (validity) {
+                    this.handler.state = states.MAKEBOOKINGCONFIRM;
+                    this.emit(':ask', make_booking_response);
+                } else {
+                    this.handler.state = states.MAKEBOOKING;
+                    generate_available_intent(activity, date.value, time.value, this.attributes, (data) => {
+                    this.emit(data.cmd, make_booking_not_found_response + data.data);
+                  });
+                }
+            
+            });
         }
     },
     'ViewMoreInformationIntent': function () {
@@ -431,17 +508,19 @@ var makebooking_handlers = Alexa.CreateStateHandler(states.MAKEBOOKING, {
                 time: time,
                 activity: activity
             };
-
+            //
             // TODO: Use the parameters returned to find available bookings.
-            if (isValidAvailableClass(activity, date, time)) {
+            isValidAvailableClass(activity, date, time, this.attributes, (validity) => {
+            if(validity) {
                 this.handler.state = states.MAKEBOOKINGCONFIRM;
                 this.emit(':ask', make_booking_response);
             } else {
                 this.handler.state = states.MAKEBOOKING;
-                generate_available_intent(activity, date, time, this.attributes, (data) => {
-                    this.emit(':ask', make_booking_not_found_response + data);
-                });
-            }
+                generate_available_intent(activity, date.value, time.value, this.attributes, (data) => {
+                    this.emit(data.cmd, make_booking_not_found_response + data.data);
+                  });
+                }
+            });
         }
     },
 
@@ -458,6 +537,7 @@ var makebooking_handlers = Alexa.CreateStateHandler(states.MAKEBOOKING, {
     },
 
     'CustomNoIntent': function () {
+        this.attributes.log("ending requst ?");
         this.shouldEndSession = true;
     },
     'LaunchRequest': function () {
@@ -831,20 +911,29 @@ module.exports.handler = function (event, context, callback, logging_function) {
         // the application will assign each user a UUID in their session
         // which they can then use to retrieve the results of any expensive computations.
 
-        var user_uuid = uuidv1(); 
+        var user_uuid;
 
         if (event.session.attributes) {
             event.session.attributes["authenticated"] = true;
             event.session.attributes["user_id"] = event.session.user.userId;
             event.session.attributes['log'] = logging_function;
-            event.session.attributes['uuid'] = user_uuid;
         } else {
             event.session.attributes = {
                 authenticated: true,
                 user_id: event.session.user.accessToken.userId,
-                log: logging_function,
-                uuid: user_uuid
+                log: logging_function
             };
+        }
+        if(!event.session.attributes.uuid) {
+            user_uuid = uuidv1(); 
+            event.session.attributes.uuid = user_uuid;
+        } else {
+            user_uuid = event.session.attributes.uuid;
+        }
+        if(!event.session.attributes.token) {
+            event.session.attributes['token'] = token;
+        } else {
+            token = event.session.attributes['token'];
         }
         
         request(auth.options_token_request, function(error, resp, data) {
@@ -856,11 +945,15 @@ module.exports.handler = function (event, context, callback, logging_function) {
             var event_group_request = auth.event_group_request;
             event_group_request.headers['auth-token'] = event.session.attributes['auth_token'];
             request(event_group_request, function(error, resp, data) {
+                logging_function('--------------------------------------------------------------------');
+                logging_function('recieevd a response');
+                logging_function('--------------------------------------------------------------------');
                 var values = JSON.parse(data);
                 var events = values._embedded.event_groups;
-                booking_bug.buildEventGroupDatabase(events, (data) => {
+                logging_function('events length: ------------------------------------->' + events.length );
+                booking_bug.buildEventGroupDatabase(events,logging_function, (data) => {
                     // Take the parsed data and store it in the local database under the user's id
-                    local_db[user_uuid] = data;
+                    local_db[token] = data;
                 });
             });
 

@@ -1,16 +1,16 @@
 'use strict';
 
 
-var express       = require('express');
-var https         = require('https');
-var http          = require('http');
-var fs            = require('fs');
-var bodyParser    = require('body-parser');
-var context       = require('aws-lambda-mock-context');
-var createHandler = require('azure-function-express').createHandler;
+const express       = require('express');
+const https         = require('https');
+const http          = require('http');
+const fs            = require('fs');
+const bodyParser    = require('body-parser');
+const context       = require('aws-lambda-mock-context');
+const createHandler = require('azure-function-express').createHandler;
 
 
-var lambda      = require('./lib/alexa.js');
+const lambda      = require('./lib/alexa.js');
 
 const SERVER_PORT = 3000;
 const SERVER_IP = 'localhost';
@@ -50,7 +50,7 @@ app.post('/api/alexa/', function(req, res) {
     lambda.handler(req.body, ctx, undefined,req.context.log);
     
     
-    ctx.Promise.then(resp => { 
+    ctx.Promise.then((resp) => {
         req.context.log("----------------------------------------------------------------");
         req.context.log("                     FUNCTION FINISHED                          ");
         req.context.log("----------------------------------------------------------------");
