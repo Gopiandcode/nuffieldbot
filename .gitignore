@@ -5,7 +5,7 @@ node_modules/
 .idea/*
 .idea/
 
-alexa/lib/auth.js
+alexa/lib/urls.js
 
 ### Node template
 # Logs

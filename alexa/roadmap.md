@@ -6,4 +6,5 @@
 -    Grouping events by higher heirarchical categories.
 -    Adaptive Responses
 -    Microsoft Directline?
--
+-    Also list fully booked classes and provide option to join waiting list 
+-    All categories options

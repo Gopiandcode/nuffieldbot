@@ -1,12 +1,3 @@
-function config(cgrunt) {
-    return {
-        watch: {
-            files: ['./lib/*.js', './index.js', './config.js'],
-            tasks: ['run']
-        }
-
-    };
-    
+module.exports = {
+    buildLocally: false
 }
-
-module.exports = config;
