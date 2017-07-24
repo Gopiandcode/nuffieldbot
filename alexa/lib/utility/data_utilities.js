@@ -1,27 +1,9 @@
 var request = require('request');
-var event_reference = require('./events.json');
 const child_process = require('child_process');
 
-// Scans through the list of events + ids to return the event name
-function getEventName(event_id) {
-    for(var i in event_reference) {
-        var obj = event_reference[i];
-        if(obj.id === event_id)
-            return obj.name;
-    }
-    return undefined;
-}
 
-// Given an alexa slot value, return the event id
-function getEventId(alexa_name) {
-  for (var i in event_reference) {
-    var obj = event_reference[i];
-    if(obj.alexa_name.toLowerCase() === alexa_name.toLowerCase()) {
-      return obj.id;
-    }
-  }
-  return undefined;
-}
+
+
 
 // Converts a time to a speakable format
 function timestring(hour, minutes) {
@@ -110,10 +92,8 @@ function speachifyResponse(data){
   var dyn_text = [];
   
   events.forEach(function(item) {
-      var name = getEventName(item.id);
-      if(!name) {
-        name = item.description;
-      }
+      name = item.description;
+
       var date_str = dateToString(new Date(item.datetime), item.duration);
     
       dyn_text.push(name + " on " + date_str); 
@@ -291,7 +271,6 @@ function setDateTime(time, date){
 
 module.exports = {
     'speachify': speachifyResponse,
-    'convertSkillValue': getEventId,
     'convertDateSlotValue': getDateFromSlot,
     'convertTimeSlotValue': parseTime,
     'urlDate': datestr,
